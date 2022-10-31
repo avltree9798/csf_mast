@@ -1,6 +1,7 @@
 from asonic import Client
 from asonic.enums import Channel
 from modules.abstract.scanner import Scanner
+from modules.scanner.report import Report
 from modules.utils.preprocessor import PREPROCESSOR
 from modules.logger import logger
 from modules.utils.constant import (
@@ -12,6 +13,7 @@ from modules.utils.constant import (
 )
 import asyncio
 import importlib
+import magic
 import os
 
 
@@ -95,24 +97,33 @@ class ScannerManager:
 
     async def start_scanner(self):
         async def producer(scanner_queue):
-            filenames = self.scanner_by_filename.keys()
-            mimetypes = self.scanner_by_mimetype.keys()
-            for filename in filenames:
-                for scanner in self.scanner_by_filename[filename]:
-                    scanner_queue.put_nowait(scanner)
-            for mimetype in mimetypes:
-                for scanner in self.scanner_by_mimetype[mimetype]:
-                    scanner_queue.put_nowait(scanner)
+            filenames = set(self.scanner_by_filename.keys())
+            mimetypes = set(self.scanner_by_mimetype.keys())
+            mime = magic.Magic(mime=True)
+            for subdir, dirs, files in os.walk(self.scan_path):
+                for file in files:
+                    file_to_scan = os.path.join(subdir, file)
+                    if file in filenames:
+                        scanner_queue.put_nowait(
+                            (file_to_scan, self.scanner_by_filename.get(file))
+                        )
+                    mimetype = mime.from_file(file_to_scan)
+                    if mimetype in mimetypes:
+                        scanner_queue.put_nowait(
+                            (file_to_scan, self.scanner_by_mimetype.get(mimetype))
+                        )
 
-        async def consumer(scanner_queue):
+        async def consumer(scanner_queue, report):
             while True:
                 try:
-                    scanner_class = scanner_queue.get_nowait()
-                    scanner = scanner_class(
-                        database_client=self.db_client,
-                        application_path=self.scan_path
-                    )
-                    await scanner.perform_scan()
+                    file_to_scan, scanner_classes = scanner_queue.get_nowait()
+                    for scanner_class in scanner_classes:
+                        scanner = scanner_class(
+                            database_client=self.db_client,
+                            file_to_scan=file_to_scan,
+                            report=report
+                        )
+                        await scanner.perform_scan()
                 except asyncio.queues.QueueEmpty:
                     break
                 except Exception as e:
@@ -123,11 +134,14 @@ class ScannerManager:
             asyncio.create_task(producer(queue))
         ]
         await asyncio.sleep(1)
+        scanner_report = Report(
+            scan_id=self.scan_id
+        )
         for _ in range(MAX_WORKER):
             tasks.append(
-                asyncio.create_task(consumer(queue))
+                asyncio.create_task(consumer(queue, scanner_report))
             )
 
         await asyncio.wait(tasks)
-
+        scanner_report.save_to_file()
 
