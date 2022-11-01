@@ -1,3 +1,6 @@
+import time
+
+
 class Finding:
     def __init__(self, *, title: str, description: str, likelihood: int, impact: int, risk: int, recommendation: str) -> object:
         self.title = title
@@ -6,3 +9,4 @@ class Finding:
         self.impact = impact
         self.risk = risk
         self.recommendation = recommendation
+        self.found_at = time.time()
