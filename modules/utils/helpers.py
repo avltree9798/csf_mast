@@ -1,6 +1,5 @@
 from plistlib import load as load_plist
 
-
 GOOGLE_API_URL = [
     (
         "Static Map API",
@@ -64,10 +63,10 @@ GOOGLE_API_URL = [
     )
 ]
 
+
 def plist_parse(file: str) -> {}:
     plist = {}
     with open(file, 'rb') as fp:
         plist = load_plist(fp)
         fp.close()
     return plist
-

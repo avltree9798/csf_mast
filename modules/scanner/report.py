@@ -1,4 +1,5 @@
 from modules.logger import logger
+import asyncio
 import json
 import time
 
@@ -7,9 +8,11 @@ class Report:
     def __init__(self, *, scan_id: str):
         self.scan_id = scan_id
         self.findings = []
+        self.lock = asyncio.Lock()
 
     async def add_finding(self, finding):
-        self.findings.append(finding)
+        async with self.lock:
+            self.findings.append(finding)
 
     def save_to_file(self):
         output = f'/tmp/{self.scan_id}.json'
