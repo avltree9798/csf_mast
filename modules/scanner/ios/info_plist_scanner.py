@@ -55,7 +55,8 @@ class InfoPlistScanner(Scanner):
                 Finding(
                     title='Dangerous permission(s) detected',
                     description=f'During scanning {self.file_to_scan}, scanner found out that dangerous permissions '
-                                f'are being used by the application. The permission(s) are:\n{dangerous_permissions_detected_str} '
+                                f'are being used by the application. The permission(s) are:'
+                                f'\n{dangerous_permissions_detected_str} '
                                 '\nPlease check whether those permission(s) are actually needed by the application.',
                     likelihood=1,
                     impact=1,
