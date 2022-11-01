@@ -1,5 +1,4 @@
 from modules.utils.constant import (
-    ROOT_DIR,
     JADX_PATH
 )
 import os
@@ -21,7 +20,7 @@ def extract_ipa(filename: str, scan_id):
 def extract_apk(filename: str, scan_id: str):
     output = f'/tmp/mast-output/{scan_id}/{filename}-output'
     os.makedirs(output)
-    command = f"{jadx_path} -d {output} {CURR_DIR}/input/{file_name}"
+    command = f"{JADX_PATH} -d {output} {filename}"
     os.system(command)
     return output
 
